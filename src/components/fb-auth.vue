@@ -23,6 +23,7 @@ import { ref, onMounted, defineEmits } from "vue";
 // eslint-disable-next-line prettier/prettier
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword } from "firebase/auth";
 
+
 const user = ref();
 let auth;
 onMounted(() => {
@@ -34,14 +35,15 @@ onMounted(() => {
 
 const email = ref("");
 const pass = ref("");
-const emits = defineEmits(["gotCreds", "logout"]);
+const emits = defineEmits(["login", "logout"]);
+
 
 const login = () => {
   signInWithEmailAndPassword(getAuth(), email.value, pass.value)
     .then((data) => {
-      alert("Logged UID: " + data.user.uid);
-      //this.$emit("gotCreds", data);
-      emits("gotCreds", data.user);
+      //alert("Logged UID: " + data.user.uid);      
+      emits("login", data.user);      
+      //router.push({ path: "/user"});
     })
     .catch((error) => alert(error.message));
 };
@@ -57,7 +59,7 @@ const register = () => {
   createUserWithEmailAndPassword(getAuth(), email.value, pass.value)
     .then((data) => {
       alert("Created UID: " + data.user.uid);
-      emits("gotCreds", data.user);
+      emits("register", data.user);
     })
     .catch((error) => alert(error.message));
 };
@@ -66,7 +68,7 @@ const register = () => {
 
 
 <style scoped>
-.fb-auth {
-  background: grey;
-}
+  .fb-auth {
+    background: grey;
+  }
 </style>

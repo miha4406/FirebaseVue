@@ -1,8 +1,8 @@
 <!-- eslint-disable prettier/prettier -->
 <template>
   <div class="fb-fstore">
-    <h2>User messages: {{userCreds.uid}}</h2>
-    <button type="button" @click="getUserNotes()">Refresh</button>
+    <h2>User messages: {{props.userCreds.uid}}</h2>
+    <button type="button" @click="getUserNotes()" disabled>Refresh</button>
     <button type="button" @click="openAddDialog()" style="float: right;" >Add new</button>
 
     <dialog id="addDialog" >
@@ -37,31 +37,56 @@
 
 
 <script setup> /* eslint-disable no-unused-vars */
-import { ref, defineProps, onMounted, watch } from "vue";
-import { collection, doc, getDocs, getDoc, updateDoc } from 'firebase/firestore/lite';
+import { ref, defineProps, onMounted } from "vue";
+import { collection, doc, getDocs, getDoc, updateDoc, setDoc } from 'firebase/firestore/lite';
 import { db } from "@/main"
 
 
 const props = defineProps({
     userCreds: Object,
+    isNewUser: Boolean
 });
 
 
-const res = ref();
+
+const res = ref(); //?
 const isDialogA = ref(false);
 const newNote = ref("");
 const isDialogE = ref(false);
 const editKey = ref("");
 
 
-watch(props.userCreds, () => {
-    console.log("props.userCreds");
-});
+onMounted( async () => {
+    console.log("userCreds=" + props.userCreds.uid );
+    console.log("isNewUser=" + props.isNewUser );
+
+    if(props.isNewUser){ await regNewDoc(); }    
+
+    getUserNotes();
+} );
+
+
+//methods
+const regNewDoc = async () => {
+    const userRef = doc(collection(db, 'test-users'), props.userCreds.uid.toString() );
+
+    const userDoc = {
+        email: props.userCreds.email, 
+        notes: {} 
+    };
+
+    try {
+        await setDoc(userRef, userDoc);
+        console.log('User doc created.');
+    } catch (error) {
+        console.error('Error creating user:', error);
+    }
+}
 
 
 const getUserNotes = async () => {
     try {
-        const resDoc = await getDoc(doc(db, "test-users", props.userCreds.uid.toString() ));
+        const resDoc = await getDoc(doc(db, "test-users", props.userCreds.uid.toString() )); 
         
         if (resDoc.exists()) {
             console.log("Document data:", resDoc.data());
@@ -89,7 +114,7 @@ const openAddDialog = () => {
 }
 
 const addNote = async () => {     
-    const docRef = doc(db, "test-users", props.userCreds.uid.toString() );
+    const docRef = doc(db, "test-users", props.userCreds.uid.toString() ); 
     const docSnapshot = await getDoc(docRef);
 
     if (docSnapshot.exists()) {
@@ -104,11 +129,12 @@ const addNote = async () => {
         document.getElementById("addDialog").close();
     }
     
+    getUserNotes();
 }
 
 
 const delNote = async (key) => {
-    const docRef = doc(db, "test-users", props.userCreds.uid.toString() );
+    const docRef = doc(db, "test-users", props.userCreds.uid.toString() ); 
     const docSnapshot = await getDoc(docRef);
 
     if (docSnapshot.exists()) {
@@ -118,6 +144,8 @@ const delNote = async (key) => {
         
         await updateDoc(docRef, { notes: updMap });        
     }
+
+    getUserNotes();
 }
 
 
@@ -138,7 +166,7 @@ const openEditDialog = (text, key) => {
 }
 
 const editNote = async () => {
-    const docRef = doc(db, "test-users", props.userCreds.uid.toString() );
+    const docRef = doc(db, "test-users", props.userCreds.uid.toString() ); 
     const docSnapshot = await getDoc(docRef);
     
     if (docSnapshot.exists()) {
@@ -150,52 +178,31 @@ const editNote = async () => {
         newNote.value = "";
         document.getElementById("editDialog").close();
     }
+
+    getUserNotes();
 }
 
-
-//forum
-const getAllNotes = async () => {
-    try {
-        const querySnapshot = await getDocs(collection(db, "test-users"));
-        res.value = querySnapshot;
-
-        let arr = [];  //convert    
-        querySnapshot.forEach((doc) => { 
-            console.log(`${doc.id} => ${doc.data()}`); 
-                    
-            const note = {
-                id: doc.id,
-                notes: doc.data().notes
-            };
-            arr.push(note);
-        });
-        res.value = arr;
-
-    } catch (error) {
-        console.error(error);
-    }        
-}
 
 </script>
 
 
 
 <style scoped>
-.fb-fstore {
-    background: aquamarine;
-}
-.note {
-    background: gray;
-    border: 1px dashed black;
-}
-.note p {
-    margin: 2px;
-}
-.closeBtn {
-    float: right;
-    background-color: brown;
-}
-dialog p {
-    margin-top: 0;
-}
+    .fb-fstore {
+        background: aquamarine;
+    }
+    .note {
+        background: gray;
+        border: 1px dashed black;
+    }
+    .note p {
+        margin: 2px;
+    }
+    .closeBtn {
+        float: right;
+        background-color: brown;
+    }
+    dialog p {
+        margin-top: 0;
+    }
 </style>
